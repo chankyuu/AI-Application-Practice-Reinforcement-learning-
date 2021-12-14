@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.8.8",
+    "heartbeatAt": "2021-11-03T05:02:53.856923",
+    "startedAt": "2021-11-03T05:02:49.163769",
+    "docker": null,
+    "gpu": "GeForce 920M",
+    "gpu_count": 1,
+    "cpu_count": 4,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:/Users/user/PycharmProjects/pythonProject/b_DQN/dqn_atari_train_and_model_save.py",
+    "codePath": "PycharmProjects\\pythonProject\\b_DQN\\dqn_atari_train_and_model_save.py",
+    "git": {
+        "remote": null,
+        "commit": null
+    },
+    "email": "60462925+chankyuu@users.noreply.github.com",
+    "root": "C:/Users/user",
+    "host": "DESKTOP-AU7VM0E",
+    "username": "user",
+    "executable": "C:\\Users\\user\\anaconda3\\python.exe"
+}
