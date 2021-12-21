@@ -38,21 +38,16 @@ class TTTAgentA2C:
 
         # TODO
         action_prob = self.actor_critic_model.pi(obs)
+        action_prob[unavailable_actions] = 0.0
 
-        for i in unavailable_actions:
-            action_prob[i] = 0
-
-        m = Categorical(probs=action_prob)
+        # for i in unavailable_actions:
+        #     action_prob[i] = 0
 
         if mode == "TRAIN":
-            coin = np.random.random()
-            # epsilon보다 작으면 액션을 랜덤하게 뽑는다.
-            if coin < epsilon:
-                action = m.sample()
-            else:
-                action = torch.argmax(m.probs)
-        else:
-            action = torch.argmax(m.probs)
+            m = Categorical(probs=action_prob)
+            action = m.sample()
+        else :
+            action = torch.argmax(action_prob, dim=-1)
 
         return action.item()
 
@@ -70,9 +65,11 @@ class TTTAgentA2C:
         batch = self.buffer.sample(batch_size=-1)
 
         observations, actions, next_observations, rewards, dones = batch
-
+        ###################################
+        #  Critic (Value) 손실 산출 - BEGIN #
+        ###################################
+        # next_values.shape: (32, 1)
         # TODO
-        self.optimizer.zero_grad()
 
         next_values = self.actor_critic_model.v(next_observations)
         td_target_value_lst = []
@@ -81,26 +78,42 @@ class TTTAgentA2C:
             td_target = reward + self.gamma * next_value * (0.0 if done else 1.0)
             td_target_value_lst.append(td_target)
 
+        # td_target_values.shape: (32, 1)
         td_target_values = torch.tensor(td_target_value_lst, dtype=torch.float32).unsqueeze(dim=-1)
 
+        # values.shape: (32, 1)
         values = self.actor_critic_model.v(observations)
 
+        # loss_critic.shape: (,) <--  값 1개
         critic_loss = F.mse_loss(td_target_values.detach(), values)
+        ###################################
+        #  Critic (Value)  Loss 산출 - END #
+        ###################################
 
+        ################################
+        #  Actor Objective 산출 - BEGIN #
+        ################################
         q_values = td_target_values
         advantages = (q_values - values).detach()
 
         action_probs = self.actor_critic_model.pi(observations)
         action_prob_selected = action_probs.gather(dim=1, index=actions)
 
+        # action_prob_selected.shape: (32, 1)
+        # advantage.shape: (32, 1)
+        # log_pi_advantages.shape: (32, 1)
         log_pi_advantages = torch.multiply(torch.log(action_prob_selected), advantages)
 
+        # actor_objective.shape: (,) <--  값 1개
         log_actor_objective = torch.sum(log_pi_advantages)
-
         actor_loss = torch.multiply(log_actor_objective, -1.0)
+        ##############################
+        #  Actor Objective 산출 - END #
+        ##############################
 
         loss = critic_loss * 0.5 + actor_loss
 
+        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
         self.training_time_steps += 1
